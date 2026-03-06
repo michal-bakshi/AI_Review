@@ -1,0 +1,82 @@
+.panel {
+  @apply rounded-xl border border-gray-700 bg-gray-900 p-5 flex flex-col gap-4;
+}
+
+.header {
+  @apply flex items-center gap-2;
+}
+
+.headerIcon {
+  @apply text-base;
+}
+
+.headerTitle {
+  @apply text-sm font-semibold text-gray-300;
+}
+
+/* ── Message list ─────────────────────────────────────────────────────────── */
+
+.messages {
+  @apply flex flex-col gap-3 max-h-96 overflow-y-auto pr-1;
+}
+
+.userBubble {
+  @apply self-end max-w-[85%] rounded-2xl rounded-br-sm bg-indigo-700 px-4 py-2.5;
+}
+
+.userText {
+  @apply text-sm text-white leading-relaxed;
+}
+
+.assistantBubble {
+  @apply self-start max-w-[95%] rounded-2xl rounded-bl-sm bg-gray-800 px-4 py-3;
+}
+
+/* ── Typing indicator ─────────────────────────────────────────────────────── */
+
+.typingDots {
+  @apply flex items-center gap-1 h-5;
+}
+
+.typingDots span {
+  @apply h-2 w-2 rounded-full bg-gray-500 animate-bounce;
+}
+
+.typingDots span:nth-child(2) {
+  animation-delay: 75ms;
+}
+
+.typingDots span:nth-child(3) {
+  animation-delay: 150ms;
+}
+
+/* ── Streaming cursor ─────────────────────────────────────────────────────── */
+
+.streamingCursor {
+  @apply inline-block w-0.5 h-4 bg-indigo-400 ml-0.5 align-middle;
+  animation: blink 0.8s step-start infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ── Input form ───────────────────────────────────────────────────────────── */
+
+.form {
+  @apply flex gap-2 items-end;
+}
+
+.input {
+  @apply flex-1 resize-none rounded-lg border border-gray-700 bg-gray-800 px-3 py-2.5
+         text-sm text-gray-200 placeholder-gray-500 leading-relaxed
+         focus:border-indigo-500 focus:outline-none transition
+         disabled:opacity-50;
+}
+
+.sendBtn {
+  @apply h-10 w-10 flex-shrink-0 rounded-lg bg-indigo-600 text-white font-bold text-lg
+         flex items-center justify-center
+         hover:bg-indigo-500 transition
+         disabled:opacity-40 disabled:cursor-not-allowed;
+}

@@ -1,0 +1,59 @@
+.container {
+  @apply rounded-xl border border-gray-700 bg-gray-900 p-6;
+}
+
+.header {
+  @apply mb-4 flex items-center gap-3;
+}
+
+.title {
+  @apply text-base font-semibold text-gray-200;
+}
+
+.badge {
+  @apply rounded-full bg-indigo-800 px-2 py-0.5 text-xs font-medium text-indigo-200;
+}
+
+/* prose-* plugin classes cannot use @apply inside CSS modules — applied via className string in the component */
+.prose {
+  /* extra overrides that are easier to express in plain CSS */
+}
+
+/* ── Code blocks ──────────────────────────────────────────────────────────── */
+
+.codeBlock {
+  @apply my-4 rounded-lg overflow-hidden border border-gray-700/60 bg-gray-950;
+}
+
+.codeLangBar {
+  @apply flex items-center gap-1.5 px-4 py-2 border-b border-gray-700/60 bg-gray-800/60;
+}
+
+.codeLangDot {
+  @apply h-2.5 w-2.5 rounded-full bg-gray-600;
+}
+
+.codeLangLabel {
+  @apply ml-auto text-xs font-mono text-gray-500 uppercase tracking-widest;
+}
+
+.codeContent {
+  @apply block w-full overflow-x-auto px-4 py-4 text-sm text-gray-200 font-mono leading-relaxed whitespace-pre;
+}
+
+/* ── Streaming cursor ─────────────────────────────────────────────────────── */
+
+.streamingCursor {
+  @apply inline-block w-0.5 h-4 bg-indigo-400 ml-0.5 align-middle;
+  animation: blink 0.8s step-start infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ── Inline code ──────────────────────────────────────────────────────────── */
+
+.inlineCode {
+  @apply rounded bg-gray-800 px-1.5 py-0.5 text-sm text-indigo-300 font-mono;
+}

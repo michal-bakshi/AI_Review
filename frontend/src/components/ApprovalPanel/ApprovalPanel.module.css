@@ -1,0 +1,43 @@
+.panel {
+  @apply rounded-xl border border-orange-700/50 bg-orange-950/30 p-6;
+}
+
+.header {
+  @apply mb-3 flex items-center gap-2;
+}
+
+.pulse {
+  @apply h-2 w-2 rounded-full bg-orange-400 animate-pulse;
+}
+
+.title {
+  @apply text-base font-semibold text-orange-200;
+}
+
+.description {
+  @apply mb-5 text-sm text-gray-400;
+}
+
+.nodeName {
+  @apply text-orange-300;
+}
+
+.feedbackArea {
+  @apply mb-4 w-full rounded-lg border border-gray-700 bg-gray-900 p-3
+         text-sm text-gray-200 placeholder:text-gray-600 resize-none
+         focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500;
+}
+
+.actions {
+  @apply flex gap-3;
+}
+
+.approveBtn {
+  @apply flex-1 rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold
+         text-white transition hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed;
+}
+
+.changesBtn {
+  @apply flex-1 rounded-lg bg-gray-700 px-4 py-2.5 text-sm font-semibold
+         text-white transition hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed;
+}

@@ -1,0 +1,68 @@
+.page {
+  @apply min-h-screen bg-gray-950 px-4 py-8;
+}
+
+.inner {
+  @apply mx-auto max-w-6xl;
+}
+
+.topBar {
+  @apply mb-8 flex items-start justify-between;
+}
+
+.heading {
+  @apply text-2xl font-bold text-white tracking-tight;
+}
+
+.subheading {
+  @apply mt-1 text-sm text-gray-500;
+}
+
+.resetBtn {
+  @apply rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-400
+         hover:border-gray-500 hover:text-gray-200 transition;
+}
+
+.statusRow {
+  @apply mb-6;
+}
+
+.error {
+  @apply mb-6 rounded-xl border border-red-700/50 bg-red-950/30 px-5 py-4 text-sm text-red-300;
+}
+
+/* Renamed from .grid — class names must not match Tailwind utility names or @apply causes a circular dependency */
+.twoColLayout {
+  @apply grid grid-cols-1 gap-6 lg:grid-cols-2;
+}
+
+.leftCol {
+  @apply flex flex-col gap-6;
+}
+
+.rightCol {
+  @apply flex flex-col gap-6;
+}
+
+.languageBadge {
+  @apply flex items-center gap-2 text-xs text-gray-500 font-mono;
+}
+
+.languageTag {
+  @apply rounded bg-gray-800 px-2 py-1 text-indigo-300;
+}
+
+/* ── Tab bar ────────────────────────────────────────────────────────────────── */
+
+.tabBar {
+  @apply flex border-b border-gray-700/60 mb-2;
+}
+
+.tab {
+  @apply px-4 py-2 text-sm font-medium text-gray-400 border-b-2 border-transparent
+         -mb-px transition hover:text-gray-200;
+}
+
+.tabActive {
+  @apply text-indigo-400 border-indigo-500;
+}

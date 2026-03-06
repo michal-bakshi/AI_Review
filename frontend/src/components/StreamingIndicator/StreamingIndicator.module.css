@@ -1,0 +1,15 @@
+.wrapper {
+  @apply flex items-center gap-3 py-6 text-gray-400;
+}
+
+.dots {
+  @apply flex gap-1;
+}
+
+.dot {
+  @apply inline-block h-2 w-2 rounded-full bg-indigo-500 animate-bounce;
+}
+
+.label {
+  @apply text-sm;
+}

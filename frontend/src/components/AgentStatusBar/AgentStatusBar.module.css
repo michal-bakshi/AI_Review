@@ -1,0 +1,49 @@
+.bar {
+  @apply flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-mono;
+}
+
+.dot {
+  @apply flex gap-1;
+}
+
+.dot span {
+  @apply animate-bounce;
+}
+
+.statusLabel {
+  @apply font-semibold;
+}
+
+.separator {
+  @apply opacity-60;
+}
+
+.nodeName {
+  @apply font-mono;
+}
+
+/* One class per AgentStatus value — keeps styling out of component logic */
+
+.idle {
+  @apply bg-gray-700 text-gray-400;
+}
+
+.parsing {
+  @apply bg-blue-900 text-blue-300;
+}
+
+.retrieving {
+  @apply bg-purple-900 text-purple-300;
+}
+
+.writing {
+  @apply bg-yellow-900 text-yellow-300;
+}
+
+.complete {
+  @apply bg-green-900 text-green-300;
+}
+
+.error {
+  @apply bg-red-900 text-red-300;
+}

@@ -1,0 +1,67 @@
+.container {
+  @apply rounded-xl border border-gray-700 bg-gray-900 p-6;
+}
+
+.header {
+  @apply mb-4 flex items-center gap-3;
+}
+
+.title {
+  @apply text-base font-semibold text-gray-200;
+}
+
+/* ── Empty / no-diff state ──────────────────────────────────────────────────── */
+
+.empty {
+  @apply flex items-center justify-center rounded-lg border border-gray-700/60 bg-gray-950 px-6 py-10;
+}
+
+.emptyText {
+  @apply text-sm text-gray-500 font-mono;
+}
+
+/* ── Diff block ─────────────────────────────────────────────────────────────── */
+
+.diffBlock {
+  @apply rounded-lg overflow-hidden border border-gray-700/60 bg-gray-950 overflow-x-auto;
+}
+
+/* ── Individual lines ───────────────────────────────────────────────────────── */
+
+.line {
+  @apply flex font-mono text-sm leading-6 min-w-0;
+}
+
+.lineNumber {
+  @apply shrink-0 min-w-10 select-none px-2 text-right text-gray-600
+         border-r border-gray-700/60 bg-gray-900/60;
+}
+
+.lineContent {
+  @apply flex-1 px-4 whitespace-pre;
+}
+
+/* Addition */
+.lineAdd {
+  @apply bg-green-950/50 text-green-300;
+}
+
+/* Deletion */
+.lineDelete {
+  @apply bg-red-950/50 text-red-300;
+}
+
+/* Chunk header (@@ … @@) */
+.lineChunk {
+  @apply bg-blue-950/30 text-blue-400;
+}
+
+/* File header (+++ / ---) */
+.lineHeader {
+  @apply text-gray-500;
+}
+
+/* Context (unchanged) lines */
+.lineContext {
+  @apply text-gray-400;
+}
