@@ -11,10 +11,12 @@ import sys
 import tempfile
 from pathlib import Path
 
+from app.core.config import settings
+
 
 def _data_dir() -> Path:
-    """Return the data directory (backend/data)."""
-    return Path(__file__).resolve().parent.parent.parent / "data"
+    """Return the data directory from config (DATA_DIR env var)."""
+    return Path(settings.data_dir)
 
 
 def _edit_in_editor(content: str) -> str:

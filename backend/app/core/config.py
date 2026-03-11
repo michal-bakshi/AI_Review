@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     langchain_tracing_v2: bool = True
     langchain_project: str = "ai-code-review-agent"
     chroma_persist_directory: str = "./chroma_db"
+
+    # Fine-tuning data — local: ./data; Render with persistent disk: /data
+    data_dir: str = "./data"
+
     # Base model; after fine-tuning, replace with your fine-tuned model ID from platform.openai.com
     # (e.g. ft:gpt-4o-mini:org-name:custom-name:id) by setting OPENAI_MODEL in .env
     openai_model: str = "gpt-4o-mini"
