@@ -11,55 +11,59 @@ For Q&A answers the agent also checks whether the developer's argument warrants 
 score update and emits a score_update event if it does.
 """
 
+import asyncio
+
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 
 from app.agents.chat.prompts import (
     CHAT_SYSTEM,
-    GENERATE_PROMPT,
-    INTENT_PROMPT,
-    REVISION_PROMPT,
-    SCORE_RECHECK_PROMPT,
-    SELF_REVIEW_PROMPT,
+    GENERATE_HUMAN,
+    GENERATE_SYSTEM,
+    INTENT_HUMAN,
+    INTENT_SYSTEM,
+    REVISION_HUMAN,
+    REVISION_SYSTEM,
+    SCORE_RECHECK_HUMAN,
+    SCORE_RECHECK_SYSTEM,
+    SELF_REVIEW_HUMAN,
+    SELF_REVIEW_SYSTEM,
 )
 from app.agents.chat.utils import (
     build_quality_note,
     extract_code,
+    extract_score,
     format_review_items,
     history_to_messages,
     parse_score_recheck,
-    parse_self_review,
     retrieve_standards,
     update_review_score,
 )
 from app.core.config import settings
+from app.core.validation import validate_self_review
 from app.core.constants import (
     AGENT_VERSION,
+    CODE_QUALITY_RULES,
+    LLM_TEMPERATURE,
     MAX_REVISION_PASSES,
     PERFECT_SCORE,
+    REVIEWER_GUIDELINES,
     RUN_CHAT_AGENT,
     RUN_CODE_GENERATE,
     RUN_CODE_REVISE,
     RUN_CODE_REVIEW,
     RUN_INTENT_CHECK,
-    TEMP_BALANCED,
-    TEMP_CHAT,
-    TEMP_PRECISE,
 )
 from app.tools.diff_generator import generate_diff
 
-# ── LLM instances (different temperatures per task) ───────────────────────────────
-
-_llm_precise  = ChatOpenAI(model=settings.openai_model, temperature=TEMP_PRECISE)
-_llm_balanced = ChatOpenAI(model=settings.openai_model, temperature=TEMP_BALANCED)
-_llm_chat     = ChatOpenAI(model=settings.openai_model, temperature=TEMP_CHAT)
+_llm = ChatOpenAI(model=settings.openai_model, temperature=LLM_TEMPERATURE)
 
 # ── Chains ─────────────────────────────────────────────────────────────────────
 
 _intent_chain = (
-    ChatPromptTemplate.from_template(INTENT_PROMPT)
-    | _llm_precise
+    ChatPromptTemplate.from_messages([("system", INTENT_SYSTEM), ("human", INTENT_HUMAN)])
+    | _llm
     | StrOutputParser()
 )
 
@@ -71,31 +75,34 @@ _chat_chain = (
             ("human", "{question}"),
         ]
     )
-    | _llm_chat
+    | _llm
     | StrOutputParser()
 )
 
 _generate_chain = (
-    ChatPromptTemplate.from_template(GENERATE_PROMPT)
-    | _llm_balanced
+    ChatPromptTemplate.from_messages([("system", GENERATE_SYSTEM), ("human", GENERATE_HUMAN)])
+    .partial(rules=CODE_QUALITY_RULES)
+    | _llm
     | StrOutputParser()
 )
 
 _self_review_chain = (
-    ChatPromptTemplate.from_template(SELF_REVIEW_PROMPT)
-    | _llm_precise
+    ChatPromptTemplate.from_messages([("system", SELF_REVIEW_SYSTEM), ("human", SELF_REVIEW_HUMAN)])
+    .partial(rules=CODE_QUALITY_RULES, guidelines=REVIEWER_GUIDELINES)
+    | _llm
     | StrOutputParser()
 )
 
 _revision_chain = (
-    ChatPromptTemplate.from_template(REVISION_PROMPT)
-    | _llm_balanced
+    ChatPromptTemplate.from_messages([("system", REVISION_SYSTEM), ("human", REVISION_HUMAN)])
+    .partial(rules=CODE_QUALITY_RULES)
+    | _llm
     | StrOutputParser()
 )
 
 _score_recheck_chain = (
-    ChatPromptTemplate.from_template(SCORE_RECHECK_PROMPT)
-    | _llm_precise
+    ChatPromptTemplate.from_messages([("system", SCORE_RECHECK_SYSTEM), ("human", SCORE_RECHECK_HUMAN)])
+    | _llm
     | StrOutputParser()
 )
 
@@ -111,145 +118,107 @@ def _revision_inputs(standards: str, code: str, review_result) -> dict:
     return {"standards": standards, "code": code, "issues": issues, "suggestions": suggestions}
 
 
-# ── Three-pass (up to five-pass) code generation pipeline ─────────────────────────
-
-def _generate_verified_code(
-    review: str, request: str, raw_code: str, current_code: str = ""
-) -> dict[str, str | None]:
-    """Run generate → self-review → (revise → verify → re-revise) and return verified code.
-
-    All passes run synchronously. The final code is the highest-quality version
-    produced within MAX_REVISION_PASSES revision attempts.
-
-    Args:
-        review:       The final review text from the initial pipeline.
-        request:      The developer's code request / question.
-        raw_code:     The original code the developer submitted for review.
-        current_code: The code to use as the base for this generation. Defaults to
-                      raw_code for the first request; for follow-up modifications
-                      this should be the last AI-generated code.
-
-    Returns:
-        A dict with ``content`` (full response including quality note), ``diff``
-        (unified diff between current_code and the final output, or ``None`` when
-        they are identical), and ``generated_code`` (the extracted final code).
-    """
-    base_code = current_code if current_code else raw_code
-    standards = retrieve_standards(request)
-
-    # Pass 1: Generate
-    generated: str = _generate_chain.invoke(
-        {"standards": standards, "review": review, "request": request, "current_code": base_code},
-        config={"run_name": RUN_CODE_GENERATE, **_RUN_META},
-    )
-
-    # Pass 2: Self-review
-    review_result = parse_self_review(
-        _self_review_chain.invoke(
-            {"standards": standards, "code": generated},
-            config={"run_name": RUN_CODE_REVIEW, **_RUN_META},
-        )
-    )
-    initial_score: int = review_result.score
-    final_code = generated
-    final_score = initial_score
-
-    for _ in range(MAX_REVISION_PASSES):
-        if final_score >= PERFECT_SCORE:
-            break
-
-        final_code = _revision_chain.invoke(
-            _revision_inputs(standards, final_code, review_result),
-            config={"run_name": RUN_CODE_REVISE, **_RUN_META},
-        )
-        review_result = parse_self_review(
-            _self_review_chain.invoke(
-                {"standards": standards, "code": final_code},
-                config={"run_name": RUN_CODE_REVIEW, **_RUN_META},
-            )
-        )
-        final_score = review_result.score
-
-    quality_note = build_quality_note(initial_score, final_score, len(review_result.issues))
-    improved = extract_code(final_code)
-    diff: str | None = generate_diff.invoke(
-        {"original": base_code.strip(), "improved": improved}
-    )
-    return {"content": final_code + quality_note, "diff": diff, "generated_code": improved}
-
-
-# ── Async streaming pipeline ──────────────────────────────────────────────────
+# ── Code generation pipeline (async is source of truth) ────────────────────────
 
 async def _astream_generate_verified_code(
     review: str, request: str, raw_code: str, current_code: str = ""
 ):
-    """Async generator that streams the final verified code token by token.
+    """Async generator: generate → self-review → up to MAX_REVISION_PASSES revise+verify loops.
 
-    Passes 1-4 (generate, self-review, revise, verify) run silently so only one
-    clean code block is streamed. If a second revision is needed (rare), it is
-    streamed live.
+    Streams the final code (and only the last revision is streamed live; earlier passes run silent).
+    Yields {"type": "token", "content": "..."} then {"type": "done", "diff": ..., "generated_code": ...}.
     """
     base_code = current_code if current_code else raw_code
     standards = retrieve_standards(request)
 
-    # Pass 1: Generate (silent)
     generated: str = await _generate_chain.ainvoke(
         {"standards": standards, "review": review, "request": request, "current_code": base_code},
         config={"run_name": RUN_CODE_GENERATE, **_RUN_META},
     )
-
-    # Pass 2: Self-review (silent)
-    review_result = parse_self_review(
-        await _self_review_chain.ainvoke(
-            {"standards": standards, "code": generated},
-            config={"run_name": RUN_CODE_REVIEW, **_RUN_META},
-        )
+    self_review_input = {"standards": standards, "code": generated}
+    openai_self_raw = await _self_review_chain.ainvoke(
+        self_review_input,
+        config={"run_name": RUN_CODE_REVIEW, **_RUN_META},
+    )
+    review_result = await validate_self_review(
+        self_review_input,
+        openai_self_raw,
+        SELF_REVIEW_SYSTEM,
+        SELF_REVIEW_HUMAN,
+        {"rules": CODE_QUALITY_RULES, "guidelines": REVIEWER_GUIDELINES},
     )
     initial_score: int = review_result.score
+    final_code = generated
     final_score = initial_score
+    streamed_final = False
 
-    if initial_score >= PERFECT_SCORE:
-        # Already perfect — stream the generated code directly
+    if final_score >= PERFECT_SCORE:
         yield {"type": "token", "content": generated}
-        final_code = generated
+        streamed_final = True
     else:
-        # Pass 3: Revision 1 (silent)
-        rev1: str = await _revision_chain.ainvoke(
-            _revision_inputs(standards, generated, review_result),
-            config={"run_name": RUN_CODE_REVISE, **_RUN_META},
-        )
-
-        # Pass 4: Verify revision 1 (silent)
-        review_result = parse_self_review(
-            await _self_review_chain.ainvoke(
-                {"standards": standards, "code": rev1},
+        for attempt in range(MAX_REVISION_PASSES):
+            if final_score >= PERFECT_SCORE:
+                break
+            stream_this = attempt == MAX_REVISION_PASSES - 1
+            if stream_this:
+                chunks: list[str] = []
+                async for chunk in _revision_chain.astream(
+                    _revision_inputs(standards, final_code, review_result),
+                    config={"run_name": RUN_CODE_REVISE, **_RUN_META},
+                ):
+                    chunks.append(chunk)
+                    yield {"type": "token", "content": chunk}
+                final_code = "".join(chunks)
+                streamed_final = True
+            else:
+                final_code = await _revision_chain.ainvoke(
+                    _revision_inputs(standards, final_code, review_result),
+                    config={"run_name": RUN_CODE_REVISE, **_RUN_META},
+                )
+            verify_input = {"standards": standards, "code": final_code}
+            openai_verify_raw = await _self_review_chain.ainvoke(
+                verify_input,
                 config={"run_name": RUN_CODE_REVIEW, **_RUN_META},
             )
-        )
-        final_score = review_result.score
+            review_result = await validate_self_review(
+                verify_input,
+                openai_verify_raw,
+                SELF_REVIEW_SYSTEM,
+                SELF_REVIEW_HUMAN,
+                {"rules": CODE_QUALITY_RULES, "guidelines": REVIEWER_GUIDELINES},
+            )
+            final_score = review_result.score
 
-        if final_score >= PERFECT_SCORE:
-            # Revision 1 is verified 10/10 — stream it
-            yield {"type": "token", "content": rev1}
-            final_code = rev1
-        else:
-            # Pass 5: Revision 2 — stream this final attempt live
-            rev2_chunks: list[str] = []
-            async for chunk in _revision_chain.astream(
-                _revision_inputs(standards, rev1, review_result),
-                config={"run_name": RUN_CODE_REVISE, **_RUN_META},
-            ):
-                rev2_chunks.append(chunk)
-                yield {"type": "token", "content": chunk}
-            final_code = "".join(rev2_chunks)
+        if not streamed_final:
+            yield {"type": "token", "content": final_code}
 
     yield {"type": "token", "content": build_quality_note(initial_score, final_score, len(review_result.issues))}
-
     improved = extract_code(final_code)
     diff: str | None = generate_diff.invoke(
         {"original": base_code.strip(), "improved": improved}
     )
     yield {"type": "done", "diff": diff, "generated_code": improved}
+
+
+def _generate_verified_code(
+    review: str, request: str, raw_code: str, current_code: str = ""
+) -> dict[str, str | None]:
+    """Sync wrapper: runs _astream_generate_verified_code to completion and returns the same dict."""
+    content_parts: list[str] = []
+    diff: str | None = None
+    generated_code: str | None = None
+
+    async def _collect() -> None:
+        nonlocal diff, generated_code
+        async for event in _astream_generate_verified_code(review, request, raw_code, current_code):
+            if event["type"] == "token":
+                content_parts.append(event["content"])
+            elif event["type"] == "done":
+                diff = event["diff"]
+                generated_code = event["generated_code"]
+
+    asyncio.run(_collect())
+    return {"content": "".join(content_parts), "diff": diff, "generated_code": generated_code}
 
 
 async def astream_answer(
@@ -290,7 +259,12 @@ async def astream_answer(
     # Check if the AI agreed with the developer's argument and the score should change
     full_response = "".join(accumulated)
     recheck_raw: str = await _score_recheck_chain.ainvoke(
-        {"review": review, "user_message": question, "ai_response": full_response},
+        {
+            "current_score": extract_score(review),
+            "review": review,
+            "user_message": question,
+            "ai_response": full_response,
+        },
         config={"run_name": RUN_CHAT_AGENT, **_RUN_META},
     )
     should_update, new_score, _ = parse_score_recheck(recheck_raw)
@@ -334,7 +308,12 @@ def answer_question(
     )
 
     recheck_raw: str = _score_recheck_chain.invoke(
-        {"review": review, "user_message": question, "ai_response": chat_answer},
+        {
+            "current_score": extract_score(review),
+            "review": review,
+            "user_message": question,
+            "ai_response": chat_answer,
+        },
         config={"run_name": RUN_CHAT_AGENT, **_RUN_META},
     )
     should_update, new_score, _ = parse_score_recheck(recheck_raw)

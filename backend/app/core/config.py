@@ -11,7 +11,13 @@ class Settings(BaseSettings):
     langchain_tracing_v2: bool = True
     langchain_project: str = "ai-code-review-agent"
     chroma_persist_directory: str = "./chroma_db"
-    openai_model: str = "gpt-4o"
+    # Base model; after fine-tuning, replace with your fine-tuned model ID from platform.openai.com
+    # (e.g. ft:gpt-4o-mini:org-name:custom-name:id) by setting OPENAI_MODEL in .env
+    openai_model: str = "gpt-4o-mini"
+
+    # Gemini validation (optional): second-opinion on every OpenAI response
+    google_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
 
     # Embeddings
     embedding_model: str = "text-embedding-3-small"

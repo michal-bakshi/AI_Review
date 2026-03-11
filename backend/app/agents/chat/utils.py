@@ -105,6 +105,22 @@ def parse_score_recheck(raw: str) -> tuple[bool, int, str]:
     return False, 0, ""
 
 
+def extract_score(review: str) -> str:
+    """Extract the numeric score from the review markdown.
+
+    Looks for the first **X/10** pattern written by the review writer.
+    Returns the digit string (e.g. "7"), or "unknown" when not found.
+
+    Args:
+        review: The full review markdown text.
+
+    Returns:
+        The score as a string, or "unknown" if the pattern is absent.
+    """
+    match = re.search(r"\*\*(\d+)/10\*\*", review)
+    return match.group(1) if match else "unknown"
+
+
 def update_review_score(review: str, new_score: int) -> str:
     """Replace the score in the review markdown with a new value.
 

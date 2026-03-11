@@ -3,15 +3,16 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
-from app.agents.code_parser.prompts import PARSE_PROMPT
+from app.agents.code_parser.prompts import PARSE_HUMAN, PARSE_SYSTEM
 from app.agents.code_parser.schemas import CodeAnalysisResult
 from app.core.config import settings
-from app.core.constants import AGENT_VERSION, DEFAULT_LANGUAGE, TEMP_PRECISE
+from app.core.constants import AGENT_VERSION, DEFAULT_LANGUAGE, LLM_TEMPERATURE
 from app.graph.state import ReviewState
 
-_llm = ChatOpenAI(model=settings.openai_model, temperature=TEMP_PRECISE)
-_chain = ChatPromptTemplate.from_template(PARSE_PROMPT) | _llm.with_structured_output(
-    CodeAnalysisResult
+_llm = ChatOpenAI(model=settings.openai_model, temperature=LLM_TEMPERATURE)
+_chain = (
+    ChatPromptTemplate.from_messages([("system", PARSE_SYSTEM), ("human", PARSE_HUMAN)])
+    | _llm.with_structured_output(CodeAnalysisResult)
 )
 
 

@@ -1,9 +1,11 @@
 """Unit tests for the code_parser_node."""
 
-import json
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from app.agents.code_parser.schemas import CodeAnalysisResult
 
 SAMPLE_STATE = {
     "raw_code": "def hello(name: str) -> str:\n    return f'Hello {name}'",
@@ -18,71 +20,69 @@ SAMPLE_STATE = {
 }
 
 
-@patch("app.agents.code_parser.ChatOpenAI")
-def test_code_parser_returns_language(mock_llm_class: MagicMock) -> None:
+def _load_code_parser_node():
+    """Load code_parser module with mocked ChatOpenAI, then return code_parser_node."""
+    if "app.agents.code_parser.code_parser" in sys.modules:
+        del sys.modules["app.agents.code_parser.code_parser"]
+    from app.agents.code_parser.code_parser import code_parser_node
+
+    return code_parser_node
+
+
+@patch("langchain_openai.ChatOpenAI")
+def test_code_parser_returns_language(mock_chat_openai: MagicMock) -> None:
     """Parser should detect and return the programming language."""
-    from app.agents.code_parser import code_parser_node
-
-    mock_llm = MagicMock()
-    mock_llm_class.return_value = mock_llm
-    mock_response = MagicMock()
-    mock_response.content = json.dumps(
-        {"language": "python", "functions": ["hello"], "classes": [], "issues": []}
-    )
-    mock_llm.invoke.return_value = mock_response
-
-    result = code_parser_node(SAMPLE_STATE)
+    mock_chat_openai.return_value = MagicMock()
+    code_parser_node = _load_code_parser_node()
+    with patch("app.agents.code_parser.code_parser._chain") as mock_chain:
+        mock_chain.invoke.return_value = CodeAnalysisResult(
+            language="python", functions=["hello"], classes=[], issues=[]
+        )
+        result = code_parser_node(SAMPLE_STATE)
 
     assert result["language"] == "python"
 
 
-@patch("app.agents.code_parser.ChatOpenAI")
-def test_code_parser_returns_structure(mock_llm_class: MagicMock) -> None:
+@patch("langchain_openai.ChatOpenAI")
+def test_code_parser_returns_structure(mock_chat_openai: MagicMock) -> None:
     """Parser should return the parsed structure including function names."""
-    from app.agents.code_parser import code_parser_node
-
-    mock_llm = MagicMock()
-    mock_llm_class.return_value = mock_llm
-    mock_response = MagicMock()
-    mock_response.content = json.dumps(
-        {"language": "python", "functions": ["hello"], "classes": [], "issues": ["missing docstring"]}
-    )
-    mock_llm.invoke.return_value = mock_response
-
-    result = code_parser_node(SAMPLE_STATE)
+    mock_chat_openai.return_value = MagicMock()
+    code_parser_node = _load_code_parser_node()
+    with patch("app.agents.code_parser.code_parser._chain") as mock_chain:
+        mock_chain.invoke.return_value = CodeAnalysisResult(
+            language="python",
+            functions=["hello"],
+            classes=[],
+            issues=["missing docstring"],
+        )
+        result = code_parser_node(SAMPLE_STATE)
 
     assert "functions" in result["parsed_structure"]
     assert "hello" in result["parsed_structure"]["functions"]
 
 
-@patch("app.agents.code_parser.ChatOpenAI")
-def test_code_parser_handles_invalid_json(mock_llm_class: MagicMock) -> None:
+@patch("langchain_openai.ChatOpenAI")
+def test_code_parser_handles_invalid_json(mock_chat_openai: MagicMock) -> None:
     """Parser should degrade gracefully when the LLM returns invalid JSON."""
-    from app.agents.code_parser import code_parser_node
-
-    mock_llm = MagicMock()
-    mock_llm_class.return_value = mock_llm
-    mock_response = MagicMock()
-    mock_response.content = "not valid json at all"
-    mock_llm.invoke.return_value = mock_response
-
-    result = code_parser_node(SAMPLE_STATE)
+    mock_chat_openai.return_value = MagicMock()
+    code_parser_node = _load_code_parser_node()
+    with patch("app.agents.code_parser.code_parser._chain") as mock_chain:
+        mock_chain.invoke.side_effect = ValueError("invalid json")
+        result = code_parser_node(SAMPLE_STATE)
 
     assert result["language"] == "unknown"
     assert "error" in result
     assert result["parsed_structure"]["functions"] == []
 
 
-@patch("app.agents.code_parser.ChatOpenAI")
-def test_code_parser_handles_llm_exception(mock_llm_class: MagicMock) -> None:
+@patch("langchain_openai.ChatOpenAI")
+def test_code_parser_handles_llm_exception(mock_chat_openai: MagicMock) -> None:
     """Parser should catch unexpected LLM exceptions and return error state."""
-    from app.agents.code_parser import code_parser_node
-
-    mock_llm = MagicMock()
-    mock_llm_class.return_value = mock_llm
-    mock_llm.invoke.side_effect = RuntimeError("LLM unavailable")
-
-    result = code_parser_node(SAMPLE_STATE)
+    mock_chat_openai.return_value = MagicMock()
+    code_parser_node = _load_code_parser_node()
+    with patch("app.agents.code_parser.code_parser._chain") as mock_chain:
+        mock_chain.invoke.side_effect = RuntimeError("LLM unavailable")
+        result = code_parser_node(SAMPLE_STATE)
 
     assert result["language"] == "unknown"
     assert "code_parser" in result.get("error", "")
