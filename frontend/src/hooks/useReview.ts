@@ -5,6 +5,11 @@ import { streamChatAboutReview, streamStartReview } from '../api/reviewApi'
 import { SSE_TYPE } from '../constants/sse'
 import type { AgentStatus, ChatMessage } from '../types'
 
+/** Yields to the event loop so the browser can paint between streamed chunks. */
+function yieldToPaint(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 interface UseReviewResult {
   status: AgentStatus
   finalReview: string
@@ -56,6 +61,7 @@ export function useReview(): UseReviewResult {
         } else if (chunk.type === SSE_TYPE.TOKEN) {
           accumulated += chunk.content ?? ''
           setStreamingMessage(accumulated)
+          await yieldToPaint()
         } else if (chunk.type === SSE_TYPE.DONE) {
           setThreadId(chunk.thread_id!)
           setLanguage(chunk.language!)
@@ -94,6 +100,7 @@ export function useReview(): UseReviewResult {
         if (chunk.type === SSE_TYPE.TOKEN) {
           accumulated += chunk.content ?? ''
           setStreamingMessage(accumulated)
+          await yieldToPaint()
         } else if (chunk.type === SSE_TYPE.DONE) {
           if (chunk.diff != null) setDiff(chunk.diff)
           if (chunk.generated_code) setCurrentCode(chunk.generated_code)
