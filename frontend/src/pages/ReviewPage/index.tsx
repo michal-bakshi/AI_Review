@@ -11,6 +11,7 @@ import {
   PROCESSING_LABELS,
   PROCESSING_STATUSES,
   REVIEW_PAGE_LABELS,
+  WELCOME_PANEL,
 } from './ReviewPage.constants'
 import styles from './ReviewPage.module.css'
 
@@ -80,6 +81,25 @@ export function ReviewPage() {
           </div>
 
           <div className={styles.rightCol}>
+            {/* Idle: show welcome panel so the screen feels balanced */}
+            {status === 'idle' && !reviewContent && (
+              <div className={styles.welcomePanel}>
+                <h2 className={styles.welcomeTitle}>{WELCOME_PANEL.title}</h2>
+                <p className={styles.welcomeSubtitle}>{WELCOME_PANEL.subtitle}</p>
+                <ul className={styles.welcomeSteps}>
+                  {WELCOME_PANEL.steps.map((step, i) => (
+                    <li key={i} className={styles.welcomeStep}>
+                      <span className={styles.welcomeStepNum}>{i + 1}</span>
+                      <div>
+                        <span className={styles.welcomeStepLabel}>{step.label}</span>
+                        <span className={styles.welcomeStepDetail}>{step.detail}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Spinner for parsing / retrieving, and for writing before first token */}
             {isProcessing && (!isWriting || !streamingMessage) && (
               <StreamingIndicator label={PROCESSING_LABELS[status] ?? 'Processing…'} />

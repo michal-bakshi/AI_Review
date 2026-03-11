@@ -1,6 +1,7 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback, type ReactNode, type ReactElement } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import type { Components } from 'react-markdown'
 import type { ChatMessage } from '../../types'
 import styles from './ChatPanel.module.css'
 
@@ -10,14 +11,35 @@ interface ChatPanelProps {
   streamingMessage: string
   onSend: (question: string) => void
 }
+//TODO  place it in the utils
+function CopyIcon() {
+  return (
+    <svg className={styles.copyIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  )
+}
 
 export function ChatPanel({ history, isLoading, streamingMessage, onSend }: ChatPanelProps) {
   const [input, setInput] = useState('')
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [history, isLoading])
+
+  const handleCopyCode = useCallback(async (code: string, codeBlockId: string) => {
+    if (!code.trim()) return
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopiedCodeId(codeBlockId)
+      setTimeout(() => setCopiedCodeId(null), 2000)
+    } catch {
+      /* clipboard not available */
+    }
+  }, [])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -32,6 +54,54 @@ export function ChatPanel({ history, isLoading, streamingMessage, onSend }: Chat
       e.preventDefault()
       handleSubmit(e as unknown as React.FormEvent)
     }
+  }
+
+  function getCodeText(children: ReactNode): string {
+    if (typeof children === 'string') return children
+    if (Array.isArray(children)) return children.map(getCodeText).join('')
+    if (children && typeof children === 'object' && 'props' in children) {
+      const props = (children as ReactElement<{ children?: ReactNode }>).props
+      return getCodeText(props.children)
+    }
+    return String(children ?? '')
+  }
+
+  function makeMarkdownComponents(bubbleId: number | 'streaming'): Components {
+    let codeBlockIndex = 0
+    return {
+      pre({ children }) {
+        const code = getCodeText(children).trim()
+        const codeBlockId = `${bubbleId}-${codeBlockIndex++}`
+        const isCopied = copiedCodeId === codeBlockId
+        return (
+          <div className={styles.codeBlockWrapper}>
+            <button
+              type="button"
+              className={`${styles.copyCodeBtn} ${isCopied ? styles.copyCodeBtnCopied : ''}`}
+              onClick={() => handleCopyCode(code, codeBlockId)}
+              aria-label={isCopied ? 'Copied' : 'Copy code'}
+            >
+              <CopyIcon />
+              {isCopied ? 'Copied!' : 'Copy code'}
+            </button>
+            <div className={styles.codeBlock}>{children}</div>
+          </div>
+        )
+      },
+    }
+  }
+
+  function renderAssistantBubble(content: string, id: number | 'streaming') {
+    return (
+      <div className={styles.assistantBubbleInner}>
+        <article className={styles.assistantContent}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={makeMarkdownComponents(id)}>
+            {content}
+          </ReactMarkdown>
+          {isLoading && id === 'streaming' && <span className={styles.streamingCursor} />}
+        </article>
+      </div>
+    )
   }
 
   return (
@@ -51,9 +121,7 @@ export function ChatPanel({ history, isLoading, streamingMessage, onSend }: Chat
               {msg.role === 'user' ? (
                 <p className={styles.userText}>{msg.content}</p>
               ) : (
-                <article className="prose prose-invert prose-sm max-w-none prose-p:text-gray-300 prose-p:my-1 prose-headings:text-white prose-li:text-gray-300 prose-code:before:content-none prose-code:after:content-none prose-code:bg-gray-700 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-indigo-300 prose-code:text-xs prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                </article>
+                renderAssistantBubble(msg.content, i)
               )}
             </div>
           ))}
@@ -61,10 +129,7 @@ export function ChatPanel({ history, isLoading, streamingMessage, onSend }: Chat
           {isLoading && (
             <div className={styles.assistantBubble}>
               {streamingMessage ? (
-                <article className="prose prose-invert prose-sm max-w-none prose-p:text-gray-300 prose-p:my-1 prose-headings:text-white prose-li:text-gray-300 prose-code:before:content-none prose-code:after:content-none prose-code:bg-gray-700 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-indigo-300 prose-code:text-xs prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingMessage}</ReactMarkdown>
-                  <span className={styles.streamingCursor} />
-                </article>
+                renderAssistantBubble(streamingMessage, 'streaming')
               ) : (
                 <span className={styles.typingDots}>
                   <span />

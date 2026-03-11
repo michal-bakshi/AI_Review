@@ -1,17 +1,48 @@
 .page {
   @apply min-h-screen bg-gray-950 px-4 py-8;
+  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent);
+}
+
+@media (min-width: 1024px) {
+  .page {
+    @apply px-6 py-10;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page {
+    @apply px-8 py-12;
+  }
 }
 
 .inner {
-  @apply mx-auto max-w-6xl;
+  @apply mx-auto max-w-6xl w-full;
+}
+
+@media (min-width: 1536px) {
+  .inner {
+    @apply max-w-7xl;
+  }
 }
 
 .topBar {
-  @apply mb-8 flex items-start justify-between;
+  @apply mb-6 flex items-start justify-between;
+}
+
+@media (min-width: 1024px) {
+  .topBar {
+    @apply mb-8;
+  }
 }
 
 .heading {
   @apply text-2xl font-bold text-white tracking-tight;
+}
+
+@media (min-width: 1024px) {
+  .heading {
+    @apply text-3xl;
+  }
 }
 
 .subheading {
@@ -24,7 +55,13 @@
 }
 
 .statusRow {
-  @apply mb-6;
+  @apply mb-5;
+}
+
+@media (min-width: 1024px) {
+  .statusRow {
+    @apply mb-6;
+  }
 }
 
 .error {
@@ -33,15 +70,64 @@
 
 /* Renamed from .grid — class names must not match Tailwind utility names or @apply causes a circular dependency */
 .twoColLayout {
-  @apply grid grid-cols-1 gap-6 lg:grid-cols-2;
+  @apply grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8 lg:items-start;
 }
 
 .leftCol {
   @apply flex flex-col gap-6;
 }
 
+/* ── Welcome panel (idle state) ────────────────────────────────────────────── */
+
+.welcomePanel {
+  @apply rounded-2xl border border-gray-700/80 bg-gray-900/60 p-6
+         lg:p-8;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.welcomeTitle {
+  @apply text-xl font-semibold text-white mb-2;
+}
+
+@media (min-width: 1024px) {
+  .welcomeTitle {
+    @apply text-2xl mb-3;
+  }
+}
+
+.welcomeSubtitle {
+  @apply text-sm text-gray-400 leading-relaxed mb-6 max-w-md;
+}
+
+@media (min-width: 1024px) {
+  .welcomeSubtitle {
+    @apply text-base mb-8;
+  }
+}
+
+.welcomeSteps {
+  @apply list-none p-0 m-0 flex flex-col gap-4;
+}
+
+.welcomeStep {
+  @apply flex items-start gap-4;
+}
+
+.welcomeStepNum {
+  @apply flex-shrink-0 w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300
+         font-semibold text-sm flex items-center justify-center;
+}
+
+.welcomeStepLabel {
+  @apply block text-gray-200 font-medium text-sm;
+}
+
+.welcomeStepDetail {
+  @apply block text-gray-500 text-xs mt-0.5;
+}
+
 .rightCol {
-  @apply flex flex-col gap-6;
+  @apply flex flex-col gap-6 min-w-0;
 }
 
 .languageBadge {

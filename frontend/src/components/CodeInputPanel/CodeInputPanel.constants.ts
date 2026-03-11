@@ -13,8 +13,6 @@ export const LOADING_STATUSES: AgentStatus[] = [
   'parsing',
   'retrieving',
   'writing',
-  'awaiting_approval',
-  'finalising',
 ]
 
 export const PLACEHOLDER_CODE = `// Paste your code here for review…

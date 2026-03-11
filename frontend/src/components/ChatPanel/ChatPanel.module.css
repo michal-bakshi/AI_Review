@@ -1,5 +1,12 @@
 .panel {
-  @apply rounded-xl border border-gray-700 bg-gray-900 p-5 flex flex-col gap-4;
+  @apply rounded-xl border border-gray-700 bg-gray-900 p-5 flex flex-col gap-4
+         w-full max-w-full;
+}
+
+@media (min-width: 1024px) {
+  .panel {
+    @apply max-w-2xl p-6;
+  }
 }
 
 .header {
@@ -17,11 +24,24 @@
 /* ── Message list ─────────────────────────────────────────────────────────── */
 
 .messages {
-  @apply flex flex-col gap-3 max-h-96 overflow-y-auto pr-1;
+  @apply flex flex-col gap-4 overflow-y-auto pr-1;
+  max-height: min(28rem, 50vh);
+}
+
+@media (min-width: 1024px) {
+  .messages {
+    max-height: min(32rem, 55vh);
+  }
 }
 
 .userBubble {
   @apply self-end max-w-[85%] rounded-2xl rounded-br-sm bg-indigo-700 px-4 py-2.5;
+}
+
+@media (min-width: 1024px) {
+  .userBubble {
+    @apply max-w-[75%];
+  }
 }
 
 .userText {
@@ -29,7 +49,80 @@
 }
 
 .assistantBubble {
-  @apply self-start max-w-[95%] rounded-2xl rounded-bl-sm bg-gray-800 px-4 py-3;
+  @apply self-start max-w-[95%] rounded-2xl rounded-bl-sm bg-gray-800/90 border border-gray-700/60 px-4 py-3;
+}
+
+@media (min-width: 1024px) {
+  .assistantBubble {
+    @apply max-w-[85%] px-5 py-4;
+  }
+}
+
+.assistantBubbleInner {
+  @apply flex flex-col gap-2;
+}
+
+.assistantContent {
+  @apply text-[15px] leading-[1.65] text-gray-200;
+}
+
+.assistantContent p {
+  @apply my-2 first:mt-0 last:mb-0;
+}
+
+.assistantContent h1,
+.assistantContent h2,
+.assistantContent h3 {
+  @apply font-semibold text-white mt-4 mb-1 first:mt-0;
+}
+
+.assistantContent ul,
+.assistantContent ol {
+  @apply my-2 pl-5 space-y-0.5;
+}
+
+.assistantContent li {
+  @apply text-gray-300;
+}
+
+.assistantContent code {
+  @apply font-mono text-sm;
+}
+
+.assistantContent :not(pre) > code {
+  @apply rounded bg-gray-700/80 px-1.5 py-0.5 text-indigo-200;
+}
+
+/* ── Code block with copy (code only) ─────────────────────────────────────── */
+
+.codeBlockWrapper {
+  @apply my-3 rounded-lg overflow-hidden border border-gray-700/60 bg-gray-950 relative;
+}
+
+.codeBlock {
+  @apply overflow-x-auto;
+}
+
+.codeBlock pre {
+  @apply my-0;
+}
+
+.codeBlock code {
+  @apply block p-4 pr-12 text-sm text-gray-200 whitespace-pre font-mono;
+}
+
+.copyCodeBtn {
+  @apply absolute top-2 right-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium
+         text-gray-400 hover:text-gray-200 bg-gray-800/80 hover:bg-gray-700/80 transition
+         focus:outline-none focus:ring-1 focus:ring-gray-500 z-10;
+}
+
+.copyCodeBtnCopied {
+  @apply text-emerald-400;
+}
+
+.copyIcon {
+  @apply w-3.5 h-3.5 opacity-80;
 }
 
 /* ── Typing indicator ─────────────────────────────────────────────────────── */

@@ -1,5 +1,11 @@
 .bar {
-  @apply flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-mono;
+  @apply flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-mono;
+}
+
+@media (min-width: 1024px) {
+  .bar {
+    @apply px-5 py-3;
+  }
 }
 
 .dot {
@@ -25,7 +31,7 @@
 /* One class per AgentStatus value — keeps styling out of component logic */
 
 .idle {
-  @apply bg-gray-700 text-gray-400;
+  @apply bg-gray-800/80 text-gray-400 border border-gray-700/60;
 }
 
 .parsing {
