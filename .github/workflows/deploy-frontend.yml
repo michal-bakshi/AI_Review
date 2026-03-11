@@ -33,12 +33,9 @@ jobs:
 
       - name: Build
         working-directory: frontend
-        run: |
-          export VITE_API_URL="${{ vars.VITE_API_URL }}"
-          if [ -z "$VITE_API_URL" ]; then
-            export VITE_API_URL="https://ai-review-backend-zpnh.onrender.com"
-          fi
-          npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://ai-review-backend-zpnh.onrender.com' }}
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
