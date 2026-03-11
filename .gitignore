@@ -12,9 +12,6 @@ venv/
 .env
 frontend/.env.local
 
-# ChromaDB vector store data
-chroma_db/
-
 # Node
 node_modules/
 frontend/dist/
