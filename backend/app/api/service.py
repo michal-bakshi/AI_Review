@@ -68,11 +68,15 @@ class ReviewService:
 
             yield {"type": "status", "content": "writing"}
             review_chunks: list[str] = []
+            final_review = ""
             async for chunk in astream_review_llm(language, structure, standards, code):
-                review_chunks.append(chunk)
-                yield {"type": "token", "content": chunk}
-
-            final_review = "".join(review_chunks)
+                if isinstance(chunk, dict) and "final_review" in chunk:
+                    final_review = chunk["final_review"]
+                else:
+                    review_chunks.append(chunk)
+                    yield {"type": "token", "content": chunk}
+            if not final_review and review_chunks:
+                final_review = "".join(review_chunks)
 
             self._workflow.update_state(
                 config,
