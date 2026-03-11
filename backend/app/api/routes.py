@@ -10,6 +10,7 @@ Route handlers are intentionally thin: they own only HTTP concerns
 All business logic lives in ReviewService.
 """
 
+import asyncio
 import json
 import uuid
 from typing import AsyncIterator
@@ -35,9 +36,13 @@ def _sse(data: dict) -> str:
 
 
 async def _to_sse(source: AsyncIterator[dict]) -> AsyncIterator[str]:
-    """Convert a dict-yielding async generator to SSE-formatted string chunks."""
+    """Convert a dict-yielding async generator to SSE-formatted string chunks.
+    Yields to the event loop after each chunk so the transport can flush (avoids
+    buffering the whole stream and delivers token-by-token to the client).
+    """
     async for event in source:
         yield _sse(event)
+        await asyncio.sleep(0)
 
 
 def _streaming_response(generator: AsyncIterator[str]) -> StreamingResponse:
